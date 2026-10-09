@@ -10,6 +10,10 @@ dist/
 .venv/
 venv/
 
+# Node (only used by scripts/frontend_smoke.mjs)
+node_modules/
+package-lock.json
+
 # Tooling caches
 .pytest_cache/
 .mypy_cache/
