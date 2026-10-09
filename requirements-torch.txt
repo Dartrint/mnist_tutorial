@@ -1,0 +1,8 @@
+# Optional: PyTorch CNN backend (`python -m mnist.torch_cnn`).
+#
+# Install the CPU-only wheel (much smaller, no CUDA):
+#   pip install -r requirements-torch.txt
+#
+# The `--extra-index-url` below points at PyTorch's CPU wheel index.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.0

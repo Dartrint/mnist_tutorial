@@ -38,25 +38,31 @@ def build_optimizer(model: MLP, name: str, lr: float, momentum: float, weight_de
 
 
 def train_epoch(model: MLP, optimizer, X, y, batch_size: int, rng) -> tuple[float, float]:
-    """Run one epoch; return ``(mean_loss, accuracy)`` over the training set."""
+    """Run one epoch; return ``(mean_loss, accuracy)`` over the training set.
+
+    The logits from the forward pass are reused for both the loss and the
+    accuracy, so each mini-batch costs a single forward pass.
+    """
     loss_meter, acc_meter = AverageMeter(), AverageMeter()
     for xb, yb in iterate_minibatches(X, y, batch_size, rng, shuffle=True):
-        loss, dlogits = model.loss(xb, yb, training=True)
+        logits = model.forward(xb, training=True)
+        loss, dlogits = nn.softmax_cross_entropy(logits, yb)
         model.backward(dlogits)
         optimizer.step()
         loss_meter.update(loss, n=len(xb))
-        acc_meter.update(accuracy(model.forward(xb, training=False), yb), n=len(xb))
+        acc_meter.update(accuracy(logits, yb), n=len(xb))
     return loss_meter.avg, acc_meter.avg
 
 
 def evaluate(model: MLP, X, y, batch_size: int = 4096) -> tuple[float, float]:
-    """Return ``(mean_loss, accuracy)`` for a dataset."""
+    """Return ``(mean_loss, accuracy)`` for a dataset (single forward per batch)."""
     loss_meter, acc_meter = AverageMeter(), AverageMeter()
     for start in range(0, len(X), batch_size):
         xb, yb = X[start : start + batch_size], y[start : start + batch_size]
-        loss, _ = model.loss(xb, yb, training=False)
+        logits = model.forward(xb, training=False)
+        loss, _ = nn.softmax_cross_entropy(logits, yb)
         loss_meter.update(loss, n=len(xb))
-        acc_meter.update(accuracy(model.forward(xb, training=False), yb), n=len(xb))
+        acc_meter.update(accuracy(logits, yb), n=len(xb))
     return loss_meter.avg, acc_meter.avg
 
 

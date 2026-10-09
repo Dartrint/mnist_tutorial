@@ -111,6 +111,10 @@ class Dropout(Layer):
         self._mask = (self.rng.random(x.shape) < keep).astype(x.dtype) / keep
         return x * self._mask
 
+    def backward(self, dout: np.ndarray) -> np.ndarray:
+        if self._mask is None:
+            return dout
+        return dout * self._mask
 
 
 def softmax(logits: np.ndarray) -> np.ndarray:

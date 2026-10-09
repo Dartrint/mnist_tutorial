@@ -180,7 +180,7 @@ def train_cnn(
             loss.backward()
             optimizer.step()
             scheduler.step()
-            total += float(loss) * len(xb)
+            total += loss.detach().item() * len(xb)
             seen += len(xb)
         train_loss = total / max(1, seen)
         val_acc = float((model.predict(X_val) == y_val).mean())

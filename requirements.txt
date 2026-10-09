@@ -1,0 +1,2 @@
+# Core runtime dependency — the whole NumPy pipeline needs only this.
+numpy>=1.24
