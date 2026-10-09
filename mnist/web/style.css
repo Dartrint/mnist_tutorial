@@ -1,0 +1,270 @@
+/* ============================================================
+   MNIST digit recognizer - dark theme, no frameworks, offline
+   ============================================================ */
+
+:root {
+  --bg: #0e1117;
+  --bg-elev: #161b22;
+  --bg-elev-2: #1d232c;
+  --border: #2b333e;
+  --text: #e6edf3;
+  --text-dim: #9aa7b4;
+  --accent: #4c9aff;
+  --accent-strong: #79b8ff;
+  --accent-soft: rgba(76, 154, 255, 0.18);
+  --danger: #ff6b6b;
+  --ok: #3fb950;
+  --warn: #e3b341;
+  --bar: #2f3b49;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  --gap: 16px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 650; line-height: 1.25; }
+h1 { font-size: 1.45rem; }
+h2 { font-size: 1.05rem; }
+h3 { font-size: 0.95rem; }
+
+/* ---------------- Layout ---------------- */
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap);
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 20px clamp(14px, 4vw, 40px) 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.subtitle { margin: 4px 0 0; color: var(--text-dim); font-size: 0.9rem; }
+
+.model-picker { display: flex; flex-direction: column; gap: 4px; min-width: 220px; }
+.model-picker label { font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.model-meta { margin: 0; font-size: 0.8rem; color: var(--text-dim); }
+
+.status-line {
+  margin: 10px clamp(14px, 4vw, 40px) 0;
+  min-height: 1.4em;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+.status-line.is-error { color: var(--danger); font-weight: 600; }
+.status-line.is-loading { color: var(--accent-strong); }
+.status-line.is-hint { color: var(--warn); }
+
+.layout {
+  display: grid;
+  gap: var(--gap);
+  padding: var(--gap) clamp(14px, 4vw, 40px) 32px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(320px, 420px) minmax(300px, 1fr) minmax(280px, 340px);
+    align-items: start;
+  }
+  .samples-card { grid-column: 1 / 3; }
+  .eval-card { grid-column: 1 / -1; }
+}
+
+/* ---------------- Cards ---------------- */
+
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hint { margin: 0; font-size: 0.8rem; color: var(--text-dim); }
+.sub-head { margin-top: 4px; color: var(--text-dim); }
+.placeholder { margin: 0; color: var(--text-dim); font-style: italic; }
+
+/* ---------------- Canvas ---------------- */
+
+#draw-canvas {
+  width: 280px;
+  height: 280px;
+  max-width: 100%;
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: crosshair;
+  touch-action: none;
+  align-self: center;
+}
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.buttons { justify-content: center; }
+
+/* ---------------- Buttons ---------------- */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+.btn:hover { background: #262d38; border-color: #3a4553; }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #06101f; }
+.btn-primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn-ghost { background: transparent; }
+
+/* ---------------- Result panel ---------------- */
+
+.digit-row { display: flex; align-items: center; gap: 16px; }
+
+.digit-badge {
+  flex: 0 0 auto;
+  width: 84px;
+  height: 84px;
+  display: grid;
+  place-items: center;
+  font-size: 3rem;
+  font-weight: 700;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--accent-strong);
+}
+
+.digit-info p { margin: 2px 0; }
+.confidence { font-size: 1rem; }
+.model-used { font-size: 0.8rem; color: var(--text-dim); }
+
+/* ---------------- Probability bars ---------------- */
+
+.prob-chart { display: flex; flex-direction: column; gap: 4px; }
+
+.prob-row { display: grid; grid-template-columns: 18px 1fr 52px; gap: 8px; align-items: center; font-size: 0.8rem; }
+.prob-label { color: var(--text-dim); text-align: right; font-variant-numeric: tabular-nums; }
+.prob-track { height: 12px; background: var(--bar); border-radius: 6px; overflow: hidden; }
+.prob-fill { height: 100%; width: 0; background: var(--accent); border-radius: 6px; transition: width 0.2s ease; }
+.prob-value { color: var(--text-dim); text-align: right; font-variant-numeric: tabular-nums; }
+.prob-row.is-winner .prob-label { color: var(--accent-strong); font-weight: 700; }
+.prob-row.is-winner .prob-fill { background: var(--ok); }
+.prob-row.is-winner .prob-value { color: var(--ok); font-weight: 700; }
+
+/* ---------------- Preview ---------------- */
+
+.preview-frame {
+  display: grid;
+  place-items: center;
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+}
+#preview-img { width: 220px; height: 220px; max-width: 100%; image-rendering: pixelated; display: none; }
+#preview-img.is-visible { display: block; }
+
+/* ---------------- Samples grid ---------------- */
+
+.samples-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+}
+
+.sample {
+  position: relative;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev-2);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.sample:hover { border-color: var(--accent); }
+.sample:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sample img { width: 100%; height: auto; aspect-ratio: 1; image-rendering: pixelated; background: #000; border-radius: 4px; }
+.sample .sample-label { font-size: 0.75rem; color: var(--text-dim); }
+.sample.is-wrong { border-color: var(--danger); }
+.sample .badge-wrong {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--danger);
+  color: #1a0505;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+/* ---------------- Evaluation ---------------- */
+
+.eval-summary { display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.9rem; }
+.eval-stat { display: flex; flex-direction: column; }
+.eval-stat .stat-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.eval-stat .stat-value { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.per-class { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.pc-row { display: grid; grid-template-columns: 16px 1fr 48px; gap: 8px; align-items: center; font-size: 0.78rem; }
+.pc-track { height: 10px; background: var(--bar); border-radius: 5px; overflow: hidden; }
+.pc-fill { height: 100%; background: var(--accent); border-radius: 5px; }
+
+.confusion { overflow-x: auto; }
+.cm-grid { display: grid; gap: 2px; min-width: 520px; }
+.cm-cell {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 40px;
+  font-size: 0.72rem;
+  border-radius: 4px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.cm-head { background: transparent; color: var(--text-dim); font-weight: 600; height: 26px; }
+.cm-rowhead { background: transparent; color: var(--text-dim); font-weight: 600; }
+
+/* ---------------- Footer ---------------- */
+
+.app-footer {
+  padding: 16px clamp(14px, 4vw, 40px) 28px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+.app-footer p { margin: 0; }
+

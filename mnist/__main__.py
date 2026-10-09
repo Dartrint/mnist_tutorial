@@ -11,6 +11,7 @@ COMMANDS = {
     "cnn": ("mnist.torch_cnn", "huấn luyện CNN bằng PyTorch (cần torch)"),
     "evaluate": ("mnist.evaluate", "đánh giá model: accuracy, confusion matrix"),
     "predict": ("mnist.predict", "dự đoán ảnh hoặc mẫu test, vẽ sprite sheet"),
+    "serve": ("mnist.webapp", "chạy website thao tác với model đã train"),
 }
 
 USAGE = """usage: python -m mnist <command> [options]
@@ -23,6 +24,7 @@ Ví dụ:
   python -m mnist train --epochs 8 --hidden 256,128
   python -m mnist evaluate --model models/mlp.npz --show-confusion
   python -m mnist predict --model models/mlp.npz --sample 16 --ascii
+  python -m mnist serve --port 8000
 
 Chạy `python -m mnist <command> --help` để xem tùy chọn của từng lệnh.
 """

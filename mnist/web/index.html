@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nhận dạng chữ số MNIST</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <h1>Nhận dạng chữ số MNIST</h1>
+      <p class="subtitle">Vẽ một chữ số (0&ndash;9) vào khung bên dưới để model dự đoán.</p>
+    </div>
+    <div class="model-picker">
+      <label for="model-select">Model</label>
+      <select id="model-select"></select>
+      <p id="model-meta" class="model-meta">Đang tải danh sách model&hellip;</p>
+    </div>
+  </header>
+
+  <p id="status-line" class="status-line" role="status" aria-live="polite"></p>
+
+  <main class="layout">
+    <!-- ---------- Drawing + prediction ---------- -->
+    <section class="card draw-card" aria-labelledby="draw-title">
+      <h2 id="draw-title">Bảng vẽ</h2>
+      <canvas id="draw-canvas" width="280" height="280"
+              aria-label="Khung vẽ chữ số, nền đen nét trắng"></canvas>
+      <div class="row buttons">
+        <button type="button" id="btn-clear" class="btn btn-ghost">Xoá</button>
+        <button type="button" id="btn-predict" class="btn btn-primary">Dự đoán</button>
+      </div>
+      <p class="hint">Tự động dự đoán sau khi bạn ngừng vẽ khoảng 400&nbsp;ms.</p>
+    </section>
+
+    <section class="card result-card" aria-labelledby="result-title">
+      <h2 id="result-title">Kết quả dự đoán</h2>
+      <div class="digit-row">
+        <div class="digit-badge" id="digit-badge">&ndash;</div>
+        <div class="digit-info">
+          <p class="confidence">Độ tin cậy: <strong id="confidence-value">&ndash;</strong></p>
+          <p class="model-used">Model: <span id="result-model">&ndash;</span> &middot; <span id="result-elapsed">&ndash;</span></p>
+        </div>
+      </div>
+      <div id="prob-chart" class="prob-chart" aria-label="Xác suất theo từng lớp 0 đến 9"></div>
+    </section>
+
+    <section class="card preview-card" aria-labelledby="preview-title">
+      <h2 id="preview-title">Ảnh model nhìn thấy</h2>
+      <div class="preview-frame">
+        <img id="preview-img" alt="Ảnh 28x28 đã tiền xử lý mà model nhận được, phóng to 10 lần" width="280" height="280">
+      </div>
+      <p class="hint" id="preview-hint">Chưa có dữ liệu. Hãy vẽ hoặc chọn một ảnh test.</p>
+    </section>
+
+    <!-- ---------- Random test samples ---------- -->
+    <section class="card samples-card" aria-labelledby="samples-title">
+      <div class="card-head">
+        <h2 id="samples-title">Ảnh test ngẫu nhiên</h2>
+        <button type="button" id="btn-samples" class="btn btn-primary">Lấy ảnh test</button>
+      </div>
+      <p class="hint">Bấm vào một ảnh để nạp vào bảng vẽ và dự đoán. Nhãn đúng được ghi trên mỗi ảnh.</p>
+      <div id="samples-grid" class="samples-grid"></div>
+    </section>
+
+    <!-- ---------- Evaluation ---------- -->
+    <section class="card eval-card" aria-labelledby="eval-title">
+      <div class="card-head">
+        <h2 id="eval-title">Đánh giá model</h2>
+        <button type="button" id="btn-evaluate" class="btn btn-primary">Đánh giá model</button>
+      </div>
+      <div id="eval-summary" class="eval-summary">
+        <p class="placeholder">Chưa chạy đánh giá.</p>
+      </div>
+      <h3 class="sub-head">Độ chính xác theo lớp</h3>
+      <div id="per-class" class="per-class"></div>
+      <h3 class="sub-head">Ma trận nhầm lẫn (hàng = nhãn đúng, cột = nhãn dự đoán)</h3>
+      <div id="confusion" class="confusion"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Chạy hoàn toàn ngoại tuyến &middot; NumPy &amp; Python stdlib.</p>
+  </footer>
+</body>
+</html>

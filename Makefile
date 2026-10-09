@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 PY ?= python3
 
-.PHONY: help install install-torch data train cnn evaluate predict test lint demo clean
+.PHONY: help install install-torch data train cnn evaluate predict serve test lint demo clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -27,6 +27,9 @@ evaluate: ## Evaluate models/mlp.npz on the test set
 
 predict: ## Predict N random test images and save a PNG grid
 	$(PY) -m mnist.predict --model models/mlp.npz --sample 16 --save-grid reports/predictions.png
+
+serve: ## Run the web UI at http://127.0.0.1:8000
+	$(PY) -m mnist serve --port 8000 $(ARGS)
 
 test: ## Run the unit test suite
 	$(PY) -m unittest discover -s tests -t . -v

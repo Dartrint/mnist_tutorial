@@ -20,9 +20,13 @@ mnist-train = "mnist.train:main"
 mnist-evaluate = "mnist.evaluate:main"
 mnist-predict = "mnist.predict:main"
 mnist-cnn = "mnist.torch_cnn:main"
+mnist-serve = "mnist.webapp:main"
 
 [tool.setuptools]
 packages = ["mnist"]
+
+[tool.setuptools.package-data]
+mnist = ["web/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

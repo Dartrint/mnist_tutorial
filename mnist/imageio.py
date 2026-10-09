@@ -24,11 +24,17 @@ def _paeth(a: int, b: int, c: int) -> int:
     return b if pb <= pc else c
 
 
-def read_png(path: str | Path) -> np.ndarray:
-    """Decode an 8-bit non-interlaced PNG into ``(H, W)`` or ``(H, W, C)`` uint8."""
-    raw = Path(path).read_bytes()
+def read_png(source: str | Path | bytes | bytearray) -> np.ndarray:
+    """Decode an 8-bit non-interlaced PNG from a path or raw bytes.
+
+    Returns ``(H, W)`` for grayscale or ``(H, W, C)`` for colour images.
+    """
+    if isinstance(source, (bytes, bytearray)):
+        raw, label = bytes(source), "<bytes>"
+    else:
+        raw, label = Path(source).read_bytes(), str(source)
     if raw[:8] != _PNG_SIG:
-        raise ValueError(f"{path}: not a PNG file")
+        raise ValueError(f"{label}: not a PNG file")
     pos, idat = 8, bytearray()
     width = height = depth = ctype = interlace = 0
     while pos < len(raw):
@@ -43,12 +49,12 @@ def read_png(path: str | Path) -> np.ndarray:
         elif ctag == b"IEND":
             break
     if depth != 8:
-        raise ValueError(f"{path}: only 8-bit PNGs are supported (got {depth})")
+        raise ValueError(f"{label}: only 8-bit PNGs are supported (got {depth})")
     if interlace:
-        raise ValueError(f"{path}: interlaced PNGs are not supported")
+        raise ValueError(f"{label}: interlaced PNGs are not supported")
     channels = {0: 1, 2: 3, 4: 2, 6: 4}.get(ctype)
     if channels is None:
-        raise ValueError(f"{path}: unsupported PNG colour type {ctype}")
+        raise ValueError(f"{label}: unsupported PNG colour type {ctype}")
 
     data = zlib.decompress(bytes(idat))
     stride = width * channels
@@ -77,7 +83,7 @@ def read_png(path: str | Path) -> np.ndarray:
                 upleft = int(prev[i - channels]) if i >= channels else 0
                 line[i] = (int(line[i]) + _paeth(left, int(prev[i]), upleft)) & 0xFF
         else:
-            raise ValueError(f"{path}: unknown PNG filter {ftype}")
+            raise ValueError(f"{label}: unknown PNG filter {ftype}")
         out[row] = line
         prev = line
 
@@ -90,8 +96,20 @@ def _chunk(tag: bytes, payload: bytes) -> bytes:
     return struct.pack(">I", len(payload)) + tag + payload + struct.pack(">I", crc)
 
 
+def to_png_bytes(image: np.ndarray) -> bytes:
+    """Encode a uint8 grayscale or RGB(A) array as an 8-bit PNG in memory."""
+    return _PNG_SIG + b"".join(_png_chunks(image))
+
+
 def write_png(path: str | Path, image: np.ndarray) -> Path:
     """Write a uint8 grayscale or RGB(A) array as an 8-bit PNG."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(to_png_bytes(image))
+    return path
+
+
+def _png_chunks(image: np.ndarray) -> list[bytes]:
     arr = np.asarray(image, dtype=np.uint8)
     if arr.ndim == 2:
         height, width = arr.shape
@@ -102,15 +120,11 @@ def write_png(path: str | Path, image: np.ndarray) -> Path:
     else:
         raise ValueError("image must be (H, W) or (H, W, 3|4)")
     lines = b"".join(b"\x00" + arr[r].tobytes() for r in range(height))
-    chunks = [
+    return [
         _chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, ctype, 0, 0, 0)),
         _chunk(b"IDAT", zlib.compress(lines, 9)),
         _chunk(b"IEND", b""),
     ]
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(_PNG_SIG + b"".join(chunks))
-    return path
 
 
 def read_pgm(path: str | Path) -> np.ndarray:
@@ -193,4 +207,116 @@ def to_ascii(image: np.ndarray, width: int | None = None) -> str:
     ramp = " .:-=+*#%@"
     idx = np.clip((img * (len(ramp) - 1)).round().astype(int), 0, len(ramp) - 1)
     return "\n".join("".join(ramp[i] for i in row) for row in idx)
+
+
+
+def _resample(image: np.ndarray, out_h: int, out_w: int) -> np.ndarray:
+    """Box-average resample a 2-D array to ``out_h x out_w`` (anti-aliased)."""
+    img = np.asarray(image, dtype=np.float32)
+    h, w = img.shape
+    rows = (np.arange(out_h + 1) * h / out_h).round().astype(int)
+    cols = (np.arange(out_w + 1) * w / out_w).round().astype(int)
+    out = np.zeros((out_h, out_w), dtype=np.float32)
+    for i in range(out_h):
+        # Clamp so that upsampling (out_h > h) never produces an empty slice.
+        r0 = min(int(rows[i]), h - 1)
+        r1 = min(max(int(rows[i + 1]), r0 + 1), h)
+        for j in range(out_w):
+            c0 = min(int(cols[j]), w - 1)
+            c1 = min(max(int(cols[j + 1]), c0 + 1), w)
+            out[i, j] = img[r0:r1, c0:c1].mean()
+    return out
+
+
+def resize_area(image: np.ndarray, size: int = 28) -> np.ndarray:
+    """Anti-aliased box downsampling of a 2-D array to ``size x size``.
+
+    Each output pixel is the mean of the input pixels it covers, so smooth
+    strokes stay smooth — unlike :func:`resize_nearest`.
+    """
+    img = np.asarray(image, dtype=np.float32)
+    if img.ndim != 2:
+        raise ValueError("expected a 2-D array")
+    if img.shape[0] == 0 or img.shape[1] == 0:
+        raise ValueError("cannot resize an empty image")
+    return _resample(img, size, size)
+
+
+def crop_to_content(image: np.ndarray, threshold: float = 0.05) -> np.ndarray:
+    """Crop a grayscale image to the bounding box of its bright ("ink") pixels."""
+    img = np.asarray(image, dtype=np.float32)
+    if img.ndim != 2:
+        raise ValueError("expected a 2-D array")
+    if img.max() > 1.0:
+        img = img / 255.0
+    mask = img > threshold
+    if not mask.any():
+        return img
+    rows, cols = np.where(mask)
+    return img[rows.min() : rows.max() + 1, cols.min() : cols.max() + 1]
+
+
+def center_by_mass(image: np.ndarray, size: int = 28) -> np.ndarray:
+    """Normalise a digit the way the original MNIST pipeline does.
+
+    The ink is cropped, scaled to fit a 20x20 box (aspect ratio preserved) and
+    pasted into a black ``size``-sized square so that its centre of mass lands
+    in the middle. This matches how the training digits were prepared and makes
+    a large difference for hand-drawn input.
+    """
+    img = crop_to_content(image)
+    if img.max() > 1.0:
+        img = img / 255.0
+    h, w = img.shape
+    scale = 20.0 / max(h, w)
+    new_h = max(1, min(size, int(round(h * scale))))
+    new_w = max(1, min(size, int(round(w * scale))))
+    resized = _resample(img, new_h, new_w)
+
+    out = np.zeros((size, size), dtype=np.float32)
+    top, left = (size - new_h) // 2, (size - new_w) // 2
+    out[top : top + new_h, left : left + new_w] = resized
+
+    total = float(out.sum())
+    if total > 0:
+        ys, xs = np.indices(out.shape)
+        cy = float((ys * out).sum()) / total
+        cx = float((xs * out).sum()) / total
+        shift_y = int(round(size / 2.0 - cy))
+        shift_x = int(round(size / 2.0 - cx))
+        if shift_y or shift_x:
+            out = np.roll(np.roll(out, shift_y, axis=0), shift_x, axis=1)
+            # np.roll wraps around; blank the wrapped-in edges to keep ink inside.
+            if shift_y > 0:
+                out[:shift_y] = 0.0
+            elif shift_y < 0:
+                out[shift_y:] = 0.0
+            if shift_x > 0:
+                out[:, :shift_x] = 0.0
+            elif shift_x < 0:
+                out[:, shift_x:] = 0.0
+    return out
+
+
+def preprocess_digit(
+    image: np.ndarray, *, invert: bool | None = None, size: int = 28, center: bool = True
+) -> np.ndarray:
+    """Full MNIST-style preprocessing for an arbitrary digit image.
+
+    Handles polarity detection, anti-aliased resizing and (by default) the
+    crop-scale-centre normalisation of the original dataset. Returns a flattened
+    ``(784,)`` ``float32`` vector with values in ``[0, 1]``.
+    """
+    img = np.asarray(image, dtype=np.float32)
+    if img.ndim == 3:
+        img = img[..., :3] @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    if img.max() > 1.0:
+        img = img / 255.0
+    border = np.concatenate([img[0], img[-1], img[:, 0], img[:, -1]])
+    if invert is None:
+        invert = border.mean() > 0.5
+    if invert:
+        img = 1.0 - img
+    normalised = center_by_mass(img, size=size) if center else resize_area(img, size)
+    return np.clip(normalised, 0.0, 1.0).reshape(-1).astype(np.float32)
 
