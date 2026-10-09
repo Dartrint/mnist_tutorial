@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from .data import DEFAULT_DATA_DIR, load_mnist
-from .model import MLP  # noqa: F401  (re-exported for convenience)
+from .model import MLP
 from .utils import classification_report, confusion_matrix, save_json
 
 

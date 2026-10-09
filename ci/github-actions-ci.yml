@@ -1,3 +1,12 @@
+# Template GitHub Actions workflow.
+#
+# This repository is pushed by a GitHub App that lacks the `workflows`
+# permission, so the file lives here instead of `.github/workflows/`.
+# To enable CI, copy it into place:
+#
+#     mkdir -p .github/workflows && cp ci/github-actions-ci.yml .github/workflows/ci.yml
+#
+
 name: CI
 
 on:

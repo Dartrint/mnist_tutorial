@@ -38,7 +38,7 @@ sprite sheet dự đoán: `reports/predictions.png`.
 - **Tải dữ liệu tự động** từ nhiều mirror, kiểm tra MD5, cache lại trong `data/`.
 - **CLI đầy đủ** cho huấn luyện, đánh giá (confusion matrix, precision/recall/F1) và dự đoán.
 - **Dự đoán ảnh của bạn**: đọc PNG/PGM bằng codec tự viết, tự động đảo màu, xuất sprite sheet PNG.
-- **Bộ test 49 case** chạy bằng `unittest` (không cần pytest), phủ cả gradient check.
+- **Bộ test 67 case** chạy bằng `unittest` (không cần pytest), phủ cả gradient check.
 
 ## Cài đặt
 
@@ -189,7 +189,7 @@ và xác suất từng lớp.
 make test        # python -m unittest discover -s tests -t . -v
 ```
 
-`make test` chạy 49 case (không cần dữ liệu MNIST thật — các test dùng dữ liệu tổng hợp,
+`make test` chạy 67 case (không cần dữ liệu MNIST thật — các test dùng dữ liệu tổng hợp,
 riêng test dữ liệu thật sẽ tự skip nếu `data/` trống). Bao gồm:
 
 - **Gradient check** bằng sai phân trung tâm (float64) cho `Linear`, `ReLU`, `Dropout`.
@@ -198,6 +198,7 @@ riêng test dữ liệu thật sẽ tự skip nếu `data/` trống). Bao gồm:
 - Round-trip PNG (xám + RGB), đọc PGM, resize, `prepare_digit`.
 - Optimizer hội tụ trên bài toán bình phương tối thiểu.
 - Lưu/đọc model `.npz` và `.pt`.
+- Dispatcher CLI (`python -m mnist`), parse tham số và các helper trong `utils`.
 
 ## Ghi chú kỹ thuật
 
