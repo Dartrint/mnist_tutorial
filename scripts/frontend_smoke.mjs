@@ -3,12 +3,19 @@
 //
 //   npm install jsdom
 //   python -m mnist serve --port 8123 --quiet &
-//   node scripts/frontend_smoke.mjs http://127.0.0.1:8123 /tmp/fe/digit.b64
+//   node scripts/frontend_smoke.mjs http://127.0.0.1:8123 my_digit.png 7
+//
+// The PNG stands in for whatever the user draws on the canvas (jsdom has no
+// real 2D canvas, so toDataURL() is stubbed to return it).
 import { readFileSync } from "node:fs";
 import { JSDOM, VirtualConsole } from "jsdom";
 
 const base = process.argv[2] || "http://127.0.0.1:8123";
-const digitDataUrl = readFileSync(process.argv[3] || "/tmp/fe/digit.b64", "utf8").trim();
+// Third argument: a PNG file OR a file containing a data URL (what the canvas would send).
+const rawStub = readFileSync(process.argv[3] || "digit.png");
+const digitDataUrl = rawStub.subarray(0, 5).toString() === "data:"
+  ? rawStub.toString("utf8").trim()
+  : "data:image/png;base64," + rawStub.toString("base64");
 const expectedDigit = (process.argv[4] || "7").trim();
 
 const failures = [];

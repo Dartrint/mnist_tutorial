@@ -9,7 +9,8 @@ Dự án phân loại chữ số viết tay **MNIST** hoàn chỉnh, chạy đư
 
 Toàn bộ pipeline được viết từ đầu: tải và giải mã file IDX, lan truyền xuôi/ngược,
 các optimizer (SGD + momentum, Adam), hàm mất mát softmax cross-entropy, bộ đọc/ghi
-ảnh PNG **không cần Pillow**, cùng CLI để huấn luyện – đánh giá – dự đoán.
+ảnh PNG **không cần Pillow**, CLI huấn luyện – đánh giá – dự đoán, và một
+**website vẽ tay để thao tác với model** (chỉ dùng thư viện chuẩn, không Flask/CDN).
 
 
 ## Kết quả tham chiếu (đã chạy thật, log trong `reports/`)
@@ -52,7 +53,7 @@ sprite sheet dự đoán: `reports/cnn_predictions.png`.
 - **Tải dữ liệu tự động** từ nhiều mirror, kiểm tra MD5, cache lại trong `data/`.
 - **CLI đầy đủ** cho huấn luyện, đánh giá (confusion matrix, precision/recall/F1) và dự đoán.
 - **Dự đoán ảnh của bạn**: đọc PNG/PGM bằng codec tự viết, tự động đảo màu, xuất sprite sheet PNG.
-- **Bộ test 67 case** chạy bằng `unittest` (không cần pytest), phủ cả gradient check.
+- **Bộ test 98 case** chạy bằng `unittest` (không cần pytest), phủ cả gradient check và web API.
 
 ## Cài đặt
 
@@ -82,6 +83,7 @@ python -m mnist train --epochs 8 --hidden 256,128
 python -m mnist evaluate --model models/mlp.npz --show-confusion
 python -m mnist predict  --model models/mlp.npz --sample 16 --ascii
 python -m mnist cnn --epochs 3                           # cần torch
+python -m mnist serve --port 8000                        # mở website
 python -m mnist --help
 ```
 
@@ -105,6 +107,71 @@ python -m mnist.torch_cnn --epochs 3 --out models/cnn.pt
 python -m mnist.evaluate --model models/cnn.pt --show-confusion
 ```
 
+
+## Website thao tác với model
+
+```bash
+make serve                      # hoặc: python -m mnist serve --port 8000
+# mở http://127.0.0.1:8000
+```
+
+Server dùng `http.server` của thư viện chuẩn, giao diện HTML/CSS/JS thuần —
+**không Flask, không CDN, không build step, không cần mạng**.
+
+Tính năng:
+
+- **Vẽ tay** trên canvas (hỗ trợ cả chuột và cảm ứng), tự dự đoán sau 400 ms ngừng vẽ.
+- **Chọn model**: dropdown liệt kê mọi checkpoint trong `models/`, kèm loại (MLP/CNN)
+  và độ chính xác test đọc từ `reports/`.
+- **Xác suất 10 lớp** dạng thanh ngang, làm nổi bật lớp thắng, kèm confidence.
+- **"Ảnh model nhìn thấy"**: ảnh 28×28 sau tiền xử lý (phóng to 10×) — thấy ngay vì sao
+  model đoán đúng hay sai.
+- **Ảnh test ngẫu nhiên**: lấy 8 ảnh từ test set, bấm vào để nạp vào canvas và dự đoán,
+  có badge đỏ khi đoán sai so với nhãn thật.
+- **Đánh giá model**: accuracy, per-class accuracy và confusion matrix 10×10 dạng heatmap.
+
+### Tiền xử lý ảnh vẽ tay
+
+Đây là phần quyết định để model dùng được với ảnh thật. Canvas được đưa qua
+`preprocess_digit()`: tự phát hiện nền sáng/tối → đảo màu, cắt sát nét vẽ, scale cạnh lớn
+nhất về 20 px (giữ tỉ lệ), dán vào khung 28×28 sao cho **khối tâm của nét vẽ trùng tâm** —
+đúng quy trình tạo dữ liệu MNIST gốc.
+
+Đo trên 300 ảnh test bị dời lệch + đảo màu (mô phỏng ảnh vẽ tay):
+
+| Tiền xử lý | Accuracy |
+|---|---|
+| Chỉ resize | 10.0% |
+| Cắt + scale 20×20 + căn khối tâm | **97.7%** |
+| Ảnh MNIST gốc (giới hạn trên) | 98.7% |
+
+### JSON API
+
+| Endpoint | Mô tả |
+|---|---|
+| `GET /api/health` | trạng thái + danh sách model |
+| `GET /api/models` | metadata checkpoint (loại, dung lượng, accuracy từ `reports/`) |
+| `POST /api/predict` | `{model, image: dataURL, center}` → `{digit, confidence, probs, preview, elapsed_ms}` |
+| `GET /api/samples?n=8&seed=0` | ảnh test ngẫu nhiên kèm nhãn thật |
+| `POST /api/evaluate` | `{model, limit}` → accuracy, confusion matrix, per-class accuracy |
+
+### Kiểm thử giao diện
+
+`tests/test_webapp.py` khởi động **server thật** trên cổng ngẫu nhiên và gọi HTTP thật
+(31 case: API, chặn path traversal, model không tồn tại, JSON hỏng, ảnh hỏng…).
+Ngoài ra có script jsdom chạy đúng `app.js` trong DOM giả để kiểm tra luồng UI:
+
+```bash
+npm install jsdom                       # chỉ cần cho bước này
+python -m mnist serve --port 8123 --quiet &
+node scripts/frontend_smoke.mjs http://127.0.0.1:8123 my_digit.png 7
+```
+
+Kết quả đã chạy: **15/15 check PASS** — nạp danh sách model, vẽ → đoán đúng "7"
+(confidence 99.98%), preview 28×28, biểu đồ 10 lớp, nút Xoá/Dự đoán, 8 ảnh test,
+và panel đánh giá (4 số liệu + 10 thanh per-class + confusion matrix 121 ô).
+
+
 ## Cấu trúc dự án
 
 ```
@@ -118,11 +185,14 @@ python -m mnist.evaluate --model models/cnn.pt --show-confusion
 │   ├── evaluate.py    # accuracy, confusion matrix, per-class report
 │   ├── predict.py     # suy luận trên ảnh/test set, vẽ sprite sheet
 │   ├── imageio.py     # đọc/ghi PNG, đọc PGM, resize (không cần Pillow)
-│   └── torch_cnn.py   # backend PyTorch CNN (tùy chọn)
+│   ├── torch_cnn.py   # backend PyTorch CNN (tùy chọn)
+│   ├── webapp.py      # web server (http.server) + JSON API
+│   └── web/           # giao diện: index.html, app.js, style.css
 ├── examples/demo.py   # demo end-to-end dưới 1 phút
-├── tests/             # unittest: gradient check, data, imageio, model
+├── scripts/frontend_smoke.mjs  # test giao diện bằng jsdom (tùy chọn)
+├── tests/             # 98 unittest: gradient check, data, imageio, model, web API
 ├── reports/           # metrics JSON + ảnh sinh ra khi chạy
-├── Makefile           # make data | train | evaluate | predict | test | demo
+├── Makefile           # make data | train | evaluate | predict | serve | test | demo
 └── pyproject.toml     # metadata + cấu hình pytest/ruff
 ```
 
@@ -203,7 +273,7 @@ và xác suất từng lớp.
 make test        # python -m unittest discover -s tests -t . -v
 ```
 
-`make test` chạy 67 case (không cần dữ liệu MNIST thật — các test dùng dữ liệu tổng hợp,
+`make test` chạy 98 case (không cần dữ liệu MNIST thật — các test dùng dữ liệu tổng hợp,
 riêng test dữ liệu thật sẽ tự skip nếu `data/` trống). Bao gồm:
 
 - **Gradient check** bằng sai phân trung tâm (float64) cho `Linear`, `ReLU`, `Dropout`.
@@ -213,6 +283,8 @@ riêng test dữ liệu thật sẽ tự skip nếu `data/` trống). Bao gồm:
 - Optimizer hội tụ trên bài toán bình phương tối thiểu.
 - Lưu/đọc model `.npz` và `.pt`.
 - Dispatcher CLI (`python -m mnist`), parse tham số và các helper trong `utils`.
+- **Web API**: mọi endpoint qua HTTP thật, gồm cả các trường hợp lỗi (400/404/405, path traversal).
+- **Tiền xử lý ảnh**: đọc/ghi PNG, căn khối tâm, tự phát hiện đảo màu.
 
 ## Ghi chú kỹ thuật
 
