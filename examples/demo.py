@@ -63,7 +63,7 @@ def main() -> int:
     idx = rng.choice(len(X_test), size=8, replace=False)
     probs = model.predict_proba(X_test[idx])
     preds = probs.argmax(axis=1)
-    for i, (true, pred) in enumerate(zip(y_test[idx], preds)):
+    for i, (true, pred) in enumerate(zip(y_test[idx], preds, strict=True)):
         mark = "OK  " if true == pred else "MISS"
         print(f"  [{i}] true={true} pred={pred} p={probs[i, pred]:.3f} {mark}")
 
@@ -72,7 +72,7 @@ def main() -> int:
     print(to_ascii(to_images(X_test[idx])[0]))
     grid = render_grid(
         to_images(X_test[idx]),
-        [f"{p}x{t}" for p, t in zip(preds, y_test[idx])],
+        [f"{p}x{t}" for p, t in zip(preds, y_test[idx], strict=True)],
     )
     write_png(args.grid, grid)
     print(f"\nwrote sprite sheet -> {args.grid}")
