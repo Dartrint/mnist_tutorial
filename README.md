@@ -5,7 +5,7 @@ Dự án phân loại chữ số viết tay **MNIST** hoàn chỉnh, chạy đư
 | Backend | Công nghệ | Độ chính xác test | Ghi chú |
 |---|---|---|---|
 | `mnist.train` | **NumPy thuần** (MLP tự viết, không framework) | **97.47%** | Chỉ cần `numpy`, chạy trên mọi máy |
-| `mnist.torch_cnn` | **PyTorch CNN** (tùy chọn) | ~99% | Cần cài `torch` (bản CPU) |
+| `mnist.torch_cnn` | **PyTorch CNN** (tùy chọn) | **98.93%** | Cần cài `torch` (bản CPU) |
 
 Toàn bộ pipeline được viết từ đầu: tải và giải mã file IDX, lan truyền xuôi/ngược,
 các optimizer (SGD + momentum, Adam), hàm mất mát softmax cross-entropy, bộ đọc/ghi
@@ -28,6 +28,20 @@ với một mô hình chỉ dùng lớp fully-connected.
 
 Metrics thô: `reports/mlp_history.json`, `reports/mlp_eval.json`;
 sprite sheet dự đoán: `reports/predictions.png`.
+
+**CNN PyTorch** — `--epochs 3 --batch-size 128 --lr 1e-3` (420 giây trên CPU, ~0.5M tham số):
+
+| Epoch | 1 | 2 | 3 |
+|---|---|---|---|
+| train loss | 0.770 | 0.110 | 0.070 |
+| val acc | 0.9714 | 0.9824 | **0.9856** |
+
+→ **test accuracy 0.9893** trên 10 000 ảnh test (chỉ 107 ảnh sai), confusion matrix
+và precision/recall/F1 trong `reports/cnn_eval.json`. Nhờ tích chập giữ được cấu trúc
+2D, số lỗi giảm từ 253 (MLP) xuống 107.
+
+Metrics thô: `reports/cnn_history.json`, `reports/cnn_eval.json`;
+sprite sheet dự đoán: `reports/cnn_predictions.png`.
 
 
 ## Điểm nổi bật
