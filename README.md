@@ -38,7 +38,7 @@ sprite sheet dự đoán: `reports/predictions.png`.
 - **Tải dữ liệu tự động** từ nhiều mirror, kiểm tra MD5, cache lại trong `data/`.
 - **CLI đầy đủ** cho huấn luyện, đánh giá (confusion matrix, precision/recall/F1) và dự đoán.
 - **Dự đoán ảnh của bạn**: đọc PNG/PGM bằng codec tự viết, tự động đảo màu, xuất sprite sheet PNG.
-- **Bộ test 20+ case** chạy bằng `unittest` (không cần pytest).
+- **Bộ test 49 case** chạy bằng `unittest` (không cần pytest), phủ cả gradient check.
 
 ## Cài đặt
 
@@ -60,7 +60,18 @@ make data        # tải MNIST (~12 MB) vào data/
 make demo        # huấn luyện nhanh + đánh giá + vẽ sprite sheet
 ```
 
-Hoặc chạy tuần tự bằng CLI:
+Có thể dùng CLI thống nhất `python -m mnist <lệnh>`:
+
+```bash
+python -m mnist data                                     # tải dữ liệu
+python -m mnist train --epochs 8 --hidden 256,128
+python -m mnist evaluate --model models/mlp.npz --show-confusion
+python -m mnist predict  --model models/mlp.npz --sample 16 --ascii
+python -m mnist cnn --epochs 3                           # cần torch
+python -m mnist --help
+```
+
+Hoặc gọi trực tiếp từng module (tương đương):
 
 ```bash
 python -m mnist.data                                     # tải dữ liệu
@@ -85,6 +96,7 @@ python -m mnist.evaluate --model models/cnn.pt --show-confusion
 ```
 .
 ├── mnist/
+│   ├── __main__.py    # CLI thống nhất: python -m mnist <lệnh>
 │   ├── data.py        # tải + giải mã file IDX, cache trong data/
 │   ├── nn.py          # Linear, ReLU, Dropout, softmax-CE, SGD, Adam
 │   ├── model.py       # MLP cấu hình được + lưu/đọc .npz
@@ -101,6 +113,8 @@ python -m mnist.evaluate --model models/cnn.pt --show-confusion
 ```
 
 ## Tham chiếu CLI
+
+`python -m mnist --help` liệt kê tất cả lệnh: `data`, `train`, `cnn`, `evaluate`, `predict`.
 
 ### `python -m mnist.train` — huấn luyện MLP
 
@@ -175,7 +189,8 @@ và xác suất từng lớp.
 make test        # python -m unittest discover -s tests -t . -v
 ```
 
-Bộ test bao gồm:
+`make test` chạy 49 case (không cần dữ liệu MNIST thật — các test dùng dữ liệu tổng hợp,
+riêng test dữ liệu thật sẽ tự skip nếu `data/` trống). Bao gồm:
 
 - **Gradient check** bằng sai phân trung tâm (float64) cho `Linear`, `ReLU`, `Dropout`.
 - Tính chất softmax (tổng bằng 1, bất biến với phép dịch) và loss so với công thức tay.

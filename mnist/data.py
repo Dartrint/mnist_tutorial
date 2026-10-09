@@ -162,6 +162,18 @@ def to_images(X: np.ndarray) -> np.ndarray:
     return np.asarray(X).reshape(-1, 28, 28)
 
 
+def main(argv: list[str] | None = None) -> int:
+    """Download (or verify) the MNIST files; usable as ``python -m mnist.data``."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Download the MNIST IDX files.")
+    parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
+    parser.add_argument("--quiet", action="store_true")
+    args = parser.parse_args(argv)
+    path = download(args.data_dir, quiet=args.quiet)
+    print(f"MNIST ready in {Path(path).resolve()}")
+    return 0
+
+
 if __name__ == "__main__":  # pragma: no cover - manual entry point
-    path = download()
-    print(f"MNIST ready in {path.resolve()}")
+    sys.exit(main())
