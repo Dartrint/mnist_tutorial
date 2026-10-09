@@ -53,6 +53,32 @@ TASKS: dict[str, tuple[str, list[str]]] = {
 HELP_FLAGS = {"-h", "--help", "help", "list", "-l"}
 
 
+def merge_args(prefix: list[str], extra: list[str]) -> list[str]:
+    """Append ``extra``, dropping prefix options the caller overrides.
+
+    ``python scripts/tasks.py train --out my.npz`` must not end up passing
+    ``--out`` twice; the caller's value simply replaces the task default.
+    """
+    overridden = {token.split("=", 1)[0] for token in extra if token.startswith("--")}
+    merged: list[str] = []
+    skip_value = False
+    for index, token in enumerate(prefix):
+        if skip_value:
+            skip_value = False
+            continue
+        if token.startswith("--") and token.split("=", 1)[0] in overridden:
+            has_inline_value = "=" in token
+            next_is_value = (
+                not has_inline_value
+                and index + 1 < len(prefix)
+                and not prefix[index + 1].startswith("-")
+            )
+            skip_value = next_is_value
+            continue
+        merged.append(token)
+    return merged + extra
+
+
 def _usage() -> str:
     width = max(len(name) for name in TASKS)
     lines = [f"  {name:<{width}}  {desc}" for name, (desc, _) in TASKS.items()]
@@ -100,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
     if task == "clean":
         return clean()
 
-    command = [*TASKS[task][1], *extra]
+    command = merge_args(TASKS[task][1], extra)
     print(f"[tasks] {task}: {' '.join(command)}", flush=True)
     try:
         return subprocess.call(command, cwd=str(ROOT))

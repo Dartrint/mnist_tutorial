@@ -114,6 +114,38 @@ class TestTaskMapping(unittest.TestCase):
         self.assertIn("could not start", err.getvalue())
 
 
+class TestArgumentMerging(unittest.TestCase):
+    """User-supplied flags must replace task defaults, never duplicate them."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.merge = staticmethod(load_tasks_module().merge_args)
+
+    def test_override_drops_the_default_pair(self) -> None:
+        merged = self.merge(
+            ["python", "-m", "mnist", "train", "--out", "models/mlp.npz"], ["--out", "my.npz"]
+        )
+        self.assertEqual(merged.count("--out"), 1)
+        self.assertEqual(merged[-2:], ["--out", "my.npz"])
+        self.assertNotIn("models/mlp.npz", merged)
+
+    def test_inline_value_form_is_handled(self) -> None:
+        merged = self.merge(["train", "--out=x"], ["--out", "y"])
+        self.assertEqual(merged, ["train", "--out", "y"])
+
+    def test_unrelated_flags_are_kept(self) -> None:
+        merged = self.merge(["evaluate", "--show-confusion", "--limit", "1000"], ["--limit", "10"])
+        self.assertEqual(merged, ["evaluate", "--show-confusion", "--limit", "10"])
+
+    def test_valueless_override_is_dropped_once(self) -> None:
+        merged = self.merge(["predict", "--ascii", "--sample", "16"], ["--ascii"])
+        self.assertEqual(merged, ["predict", "--sample", "16", "--ascii"])
+
+    def test_empty_inputs(self) -> None:
+        self.assertEqual(self.merge([], []), [])
+        self.assertEqual(self.merge([], ["--x", "1"]), ["--x", "1"])
+
+
 class TestCleanTask(unittest.TestCase):
     """`clean` must be safe: it deletes caches and generated PNGs, never models/data."""
 

@@ -53,7 +53,7 @@ sprite sheet dự đoán: `reports/cnn_predictions.png`.
 - **Tải dữ liệu tự động** từ nhiều mirror, kiểm tra MD5, cache lại trong `data/`.
 - **CLI đầy đủ** cho huấn luyện, đánh giá (confusion matrix, precision/recall/F1) và dự đoán.
 - **Dự đoán ảnh của bạn**: đọc PNG/PGM bằng codec tự viết, tự động đảo màu, xuất sprite sheet PNG.
-- **Bộ test 118 case** chạy bằng `unittest` (không cần pytest), phủ cả gradient check, web API và kiểm tra tương thích Windows.
+- **Bộ test 123 case** chạy bằng `unittest` (không cần pytest), phủ cả gradient check, web API và kiểm tra tương thích Windows.
 
 ## Yêu cầu hệ thống
 
@@ -278,7 +278,7 @@ và panel đánh giá (4 số liệu + 10 thanh per-class + confusion matrix 121
 ├── scripts/
 │   ├── tasks.py       # task runner đa nền tảng (thay cho make trên Windows)
 │   └── frontend_smoke.mjs      # test giao diện bằng jsdom (tùy chọn, cần Node.js)
-├── tests/             # 118 unittest: gradient check, data, imageio, model, web API, Windows
+├── tests/             # 123 unittest: gradient check, data, imageio, model, web API, Windows
 ├── reports/           # metrics JSON + ảnh sinh ra khi chạy
 ├── Makefile           # tiện ích cho macOS/Linux/Git Bash (không bắt buộc)
 ├── ci/                # template GitHub Actions (copy vào .github/workflows/ để bật)
@@ -367,7 +367,7 @@ python scripts/tasks.py test            # tương đương lệnh dưới
 python -m unittest discover -s tests -t . -v
 ```
 
-Bộ test chạy 118 case (không cần dữ liệu MNIST thật — các test dùng dữ liệu tổng hợp,
+Bộ test chạy 123 case (không cần dữ liệu MNIST thật — các test dùng dữ liệu tổng hợp,
 riêng test dữ liệu thật sẽ tự skip nếu `data/` trống). Bao gồm:
 
 - **Gradient check** bằng sai phân trung tâm (float64) cho `Linear`, `ReLU`, `Dropout`.
