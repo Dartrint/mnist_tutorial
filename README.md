@@ -53,67 +53,144 @@ sprite sheet dự đoán: `reports/cnn_predictions.png`.
 - **Tải dữ liệu tự động** từ nhiều mirror, kiểm tra MD5, cache lại trong `data/`.
 - **CLI đầy đủ** cho huấn luyện, đánh giá (confusion matrix, precision/recall/F1) và dự đoán.
 - **Dự đoán ảnh của bạn**: đọc PNG/PGM bằng codec tự viết, tự động đảo màu, xuất sprite sheet PNG.
-- **Bộ test 98 case** chạy bằng `unittest` (không cần pytest), phủ cả gradient check và web API.
+- **Bộ test 118 case** chạy bằng `unittest` (không cần pytest), phủ cả gradient check, web API và kiểm tra tương thích Windows.
+
+## Yêu cầu hệ thống
+
+| Mục | Yêu cầu |
+|---|---|
+| Hệ điều hành | Windows 10/11, macOS 12+, hoặc Linux |
+| Python | **3.10 trở lên** (bộ test trong repo chạy trên 3.11) |
+| Dung lượng | ~15 MB (code + dữ liệu MNIST 12 MB); thêm ~250 MB nếu cài PyTorch CPU |
+| Khác | Không cần quyền admin, không cần GPU, sau khi tải dữ liệu thì không cần mạng |
+| Tùy chọn | `make` (chỉ POSIX) hoặc Node.js ≥ 18 (chỉ để chạy smoke test giao diện) |
+
+Mọi thứ sinh ra (`data/`, `models/`, `reports/`) nằm trong thư mục dự án — không ghi
+gì ra ngoài hệ thống.
+
+### Lệnh Python theo hệ điều hành
+
+| Hệ điều hành | Dùng | Ghi chú |
+|---|---|---|
+| Windows | **`py -3`** (khuyến nghị) hoặc `python` | `python3` **không tồn tại** trên Windows |
+| macOS / Linux | `python3` | một số bản cũng có `python` |
+
+Các ví dụ bên dưới ghi `python` cho gọn; trên Windows hãy thay bằng `py -3` nếu gõ
+`python` bị mở Microsoft Store hoặc báo *not recognized*.
 
 ## Cài đặt
+
+### Windows — PowerShell (khuyến nghị)
+
+```powershell
+git clone https://github.com/Dartrint/mnist_tutorial.git
+cd $HOME\mnist_tutorial
+
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt          # chỉ cần numpy
+```
+
+Nếu PowerShell báo *running scripts is disabled on this system*:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+### Windows — cmd.exe
+
+```bat
+git clone https://github.com/Dartrint/mnist_tutorial.git
+cd %USERPROFILE%\mnist_tutorial
+
+py -3 -m venv .venv
+.venv\Scripts\activate.bat
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### macOS / Linux
 
 ```bash
 git clone https://github.com/Dartrint/mnist_tutorial.git
 cd mnist_tutorial
 
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt          # chỉ cần numpy
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
 
-# (tùy chọn) backend PyTorch bản CPU
+### (tùy chọn) PyTorch bản CPU cho CNN
+
+```powershell
 pip install -r requirements-torch.txt
 ```
 
-## Bắt đầu nhanh
+Nếu mạng công ty chặn index của PyTorch:
 
-```bash
-make data        # tải MNIST (~12 MB) vào data/
-make demo        # huấn luyện nhanh + đánh giá + vẽ sprite sheet
+```powershell
+pip install torch --index-url https://download.pytorch.org/whl/cpu
 ```
 
-Có thể dùng CLI thống nhất `python -m mnist <lệnh>`:
+Không cài cũng không sao — MLP, web UI và toàn bộ CLI chỉ cần `numpy`.
 
-```bash
-python -m mnist data                                     # tải dữ liệu
-python -m mnist train --epochs 8 --hidden 256,128
+## Chạy nhanh
+
+Ba cách **tương đương nhau**, chọn cách hợp với máy bạn:
+
+| Việc | Mọi hệ điều hành (khuyến nghị) | Chỉ khi có `make` (macOS/Linux/Git Bash) |
+|---|---|---|
+| Tải dữ liệu | `python scripts/tasks.py data` | `make data` |
+| Huấn luyện MLP | `python scripts/tasks.py train` | `make train` |
+| Huấn luyện CNN | `python scripts/tasks.py cnn` | `make cnn` |
+| Đánh giá model | `python scripts/tasks.py evaluate` | `make evaluate` |
+| Dự đoán + sprite sheet | `python scripts/tasks.py predict` | `make predict` |
+| Mở website | `python scripts/tasks.py serve` | `make serve` |
+| Chạy test | `python scripts/tasks.py test` | `make test` |
+| Demo dưới 1 phút | `python scripts/tasks.py demo` | `make demo` |
+
+`scripts/tasks.py` chỉ dùng thư viện chuẩn và chạy **y hệt trên PowerShell, cmd, macOS
+và Linux**; tham số thêm được truyền thẳng xuống CLI:
+
+```powershell
+python scripts/tasks.py                 # liệt kê tất cả task
+python scripts/tasks.py train --epochs 8 --hidden 256,128
+python scripts/tasks.py serve --port 8080
+```
+
+Hoặc gọi thẳng CLI (không cần `make` lẫn `tasks.py`):
+
+```powershell
+python -m mnist data
+python -m mnist train --epochs 8 --hidden 256,128 --batch-size 512
 python -m mnist evaluate --model models/mlp.npz --show-confusion
-python -m mnist predict  --model models/mlp.npz --sample 16 --ascii
-python -m mnist cnn --epochs 3                           # cần torch
-python -m mnist serve --port 8000                        # mở website
+python -m mnist predict --model models/mlp.npz --sample 16 --ascii
+python -m mnist serve --port 8000
 python -m mnist --help
 ```
 
-Hoặc gọi trực tiếp từng module (tương đương):
+> ⚠️ **Phải chạy lệnh từ thư mục gốc dự án** (nơi có thư mục `mnist\`). Chạy ở thư mục
+> khác sẽ báo `ModuleNotFoundError: No module named 'mnist'`.
 
-```bash
-python -m mnist.data                                     # tải dữ liệu
-python -m mnist.train --epochs 10 --hidden 256,128 \
-    --optimizer sgd --lr 0.1 --momentum 0.9 \
-    --out models/mlp.npz --metrics-out reports/mlp_history.json
+> **Nối dòng:** dấu `\` chỉ đúng trong bash. PowerShell dùng backtick `` ` ``, cmd dùng
+> `^`. An toàn nhất là viết lệnh trên một dòng như các ví dụ trên.
 
-python -m mnist.evaluate --model models/mlp.npz --show-confusion
-python -m mnist.predict  --model models/mlp.npz --sample 16 --save-grid reports/predictions.png
-```
-
-Muốn độ chính xác cao hơn (~99%):
-
-```bash
-pip install -r requirements-torch.txt
-python -m mnist.torch_cnn --epochs 3 --out models/cnn.pt
-python -m mnist.evaluate --model models/cnn.pt --show-confusion
-```
-
+Kết quả nằm trong `models\` và `reports\` (Windows) hoặc `models/`, `reports/` — dùng
+dấu `/` trong tham số cũng chạy tốt trên Windows: `--out models/mlp.npz`.
 
 ## Website thao tác với model
 
-```bash
-make serve                      # hoặc: python -m mnist serve --port 8000
-# mở http://127.0.0.1:8000
+```powershell
+python scripts/tasks.py serve            # hoặc: python -m mnist serve --port 8000
+# rồi mở http://127.0.0.1:8000 trên trình duyệt
 ```
+
+Windows: `Ctrl+C` trong cửa sổ terminal để dừng server. Mặc định server chỉ bind
+`127.0.0.1` nên **không** bị Windows Defender Firewall hỏi. Nếu muốn máy khác trong LAN
+truy cập, chạy `--host 0.0.0.0` và cho phép cổng đó ở firewall (xem mục Xử lý sự cố).
 
 Server dùng `http.server` của thư viện chuẩn, giao diện HTML/CSS/JS thuần —
 **không Flask, không CDN, không build step, không cần mạng**.
@@ -137,13 +214,16 @@ Tính năng:
 nhất về 20 px (giữ tỉ lệ), dán vào khung 28×28 sao cho **khối tâm của nét vẽ trùng tâm** —
 đúng quy trình tạo dữ liệu MNIST gốc.
 
-Đo trên 300 ảnh test bị dời lệch + đảo màu (mô phỏng ảnh vẽ tay):
+Đo trên 150 ảnh test đặt lệch trong khung 280×280 nền trắng (mô phỏng ảnh vẽ tay):
 
 | Tiền xử lý | Accuracy |
 |---|---|
-| Chỉ resize | 10.0% |
-| Cắt + scale 20×20 + căn khối tâm | **97.7%** |
+| Resize thẳng về 28×28 | 67.3% |
+| Cắt + scale 20×20 + căn khối tâm | **98.0%** |
 | Ảnh MNIST gốc (giới hạn trên) | 98.7% |
+
+Cả CLI (`python -m mnist predict`) và web UI đều dùng pipeline này;
+cờ `--no-center` để tắt căn khối tâm khi ảnh đã đúng chuẩn MNIST.
 
 ### JSON API
 
@@ -161,11 +241,17 @@ nhất về 20 px (giữ tỉ lệ), dán vào khung 28×28 sao cho **khối tâ
 (31 case: API, chặn path traversal, model không tồn tại, JSON hỏng, ảnh hỏng…).
 Ngoài ra có script jsdom chạy đúng `app.js` trong DOM giả để kiểm tra luồng UI:
 
-```bash
-npm install jsdom                       # chỉ cần cho bước này
-python -m mnist serve --port 8123 --quiet &
+```powershell
+# Cửa sổ terminal 1 — chạy server, để nguyên cửa sổ này:
+python -m mnist serve --port 8123 --quiet
+
+# Cửa sổ terminal 2 — chạy kiểm tra:
+npm install jsdom
 node scripts/frontend_smoke.mjs http://127.0.0.1:8123 my_digit.png 7
 ```
+
+`my_digit.png` là ảnh bạn tự vẽ (nền đen nét trắng hoặc ngược lại, kích thước bất kỳ)
+và `7` là nhãn đúng để đối chiếu. Cách này chạy giống nhau trên Windows, macOS và Linux.
 
 Kết quả đã chạy: **15/15 check PASS** — nạp danh sách model, vẽ → đoán đúng "7"
 (confidence 99.98%), preview 28×28, biểu đồ 10 lớp, nút Xoá/Dự đoán, 8 ảnh test,
@@ -189,10 +275,13 @@ và panel đánh giá (4 số liệu + 10 thanh per-class + confusion matrix 121
 │   ├── webapp.py      # web server (http.server) + JSON API
 │   └── web/           # giao diện: index.html, app.js, style.css
 ├── examples/demo.py   # demo end-to-end dưới 1 phút
-├── scripts/frontend_smoke.mjs  # test giao diện bằng jsdom (tùy chọn)
-├── tests/             # 98 unittest: gradient check, data, imageio, model, web API
+├── scripts/
+│   ├── tasks.py       # task runner đa nền tảng (thay cho make trên Windows)
+│   └── frontend_smoke.mjs      # test giao diện bằng jsdom (tùy chọn, cần Node.js)
+├── tests/             # 118 unittest: gradient check, data, imageio, model, web API, Windows
 ├── reports/           # metrics JSON + ảnh sinh ra khi chạy
-├── Makefile           # make data | train | evaluate | predict | serve | test | demo
+├── Makefile           # tiện ích cho macOS/Linux/Git Bash (không bắt buộc)
+├── ci/                # template GitHub Actions (copy vào .github/workflows/ để bật)
 └── pyproject.toml     # metadata + cấu hình pytest/ruff
 ```
 
@@ -258,22 +347,27 @@ Optimizer AdamW + OneCycleLR, chọn checkpoint theo validation accuracy.
 
 ## Dự đoán ảnh chữ số của bạn
 
-```bash
+```powershell
 python -m mnist.predict --model models/mlp.npz --image my_digit.png --ascii
+# Windows: đường dẫn có dấu cách thì nhớ quote -> --image "C:\anh\chu so.png"
 ```
 
 Yêu cầu ảnh: PNG/PGM (thang xám hoặc RGB), nền sáng chữ đen **hoặc** nền đen chữ trắng —
-chương trình tự phát hiện và đảo màu (`--invert auto`), sau đó resize về 28×28 và
-chuẩn hóa về `[0, 1]` đúng như dữ liệu MNIST. Kết quả in ra kèm độ tin cậy (confidence)
-và xác suất từng lớp.
+chương trình tự phát hiện và đảo màu (`--invert auto`), rồi **cắt sát nét, scale về 20×20
+và căn khối tâm vào khung 28×28** (đúng chuẩn MNIST) trước khi chuẩn hóa về `[0, 1]`.
+Kết quả in ra kèm độ tin cậy (confidence) và xác suất từng lớp.
+
+Thêm `--ascii` để xem ảnh dưới dạng ký tự ngay trong terminal, `--no-center` nếu ảnh của
+bạn đã đúng chuẩn MNIST, `--invert yes|no` để ép chiều màu.
 
 ## Kiểm thử
 
-```bash
-make test        # python -m unittest discover -s tests -t . -v
+```powershell
+python scripts/tasks.py test            # tương đương lệnh dưới
+python -m unittest discover -s tests -t . -v
 ```
 
-`make test` chạy 98 case (không cần dữ liệu MNIST thật — các test dùng dữ liệu tổng hợp,
+Bộ test chạy 118 case (không cần dữ liệu MNIST thật — các test dùng dữ liệu tổng hợp,
 riêng test dữ liệu thật sẽ tự skip nếu `data/` trống). Bao gồm:
 
 - **Gradient check** bằng sai phân trung tâm (float64) cho `Linear`, `ReLU`, `Dropout`.
@@ -285,8 +379,37 @@ riêng test dữ liệu thật sẽ tự skip nếu `data/` trống). Bao gồm:
 - Dispatcher CLI (`python -m mnist`), parse tham số và các helper trong `utils`.
 - **Web API**: mọi endpoint qua HTTP thật, gồm cả các trường hợp lỗi (400/404/405, path traversal).
 - **Tiền xử lý ảnh**: đọc/ghi PNG, căn khối tâm, tự phát hiện đảo màu.
+- **Tương thích Windows**: CLI không crash trên code page cũ (cp437/cp1258/ascii),
+  không có path `/tmp` cứng, không import module chỉ có trên POSIX.
+- **Task runner**: mọi task trong `scripts/tasks.py` đều được kiểm tra (map lệnh, `clean` an toàn).
+
+## Xử lý sự cố (ưu tiên Windows)
+
+| Triệu chứng | Nguyên nhân | Cách sửa |
+|---|---|---|
+| `'python3' is not recognized` | Windows không có `python3` | dùng `py -3` hoặc `python` |
+| `'python' is not recognized`, hoặc gõ `python` lại mở Microsoft Store | chưa cài Python, hoặc alias của Store đang bật | cài từ python.org (tick *Add python.exe to PATH*), dùng `py -3`; hoặc tắt *App execution aliases* → `python.exe` |
+| `'source' is not recognized` (PowerShell/cmd) | `source` chỉ có trong bash | PowerShell: `.\.venv\Scripts\Activate.ps1` — cmd: `.venv\Scripts\activate.bat` |
+| `Activate.ps1 cannot be loaded because running scripts is disabled` | ExecutionPolicy | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` rồi activate lại |
+| `'make' is not recognized` | `make` không có sẵn trên Windows | dùng `python scripts/tasks.py <task>` (khuyến nghị), hoặc `winget install ezwinports.make`, hoặc mở Git Bash |
+| `ModuleNotFoundError: No module named 'numpy'` | chưa activate venv, hoặc chưa `pip install` | activate venv rồi `pip install -r requirements.txt` |
+| `ModuleNotFoundError: No module named 'mnist'` | đang chạy lệnh ngoài thư mục gốc dự án | `cd` vào thư mục chứa `mnist\` rồi chạy lại |
+| `pip` chậm/lỗi SSL khi tải dữ liệu (mạng công ty) | proxy chặn | thêm `--trusted-host pypi.org --trusted-host files.pythonhosted.org`; script tải MNIST đã tự thử lại không kiểm tra chứng chỉ |
+| `[WinError 10048]` hoặc `Address already in use` | cổng đang bị chiếm | đổi cổng `--port 8080`, hoặc `netstat -ano \| findstr :8000` rồi `taskkill /PID <pid> /F` |
+| Máy khác không vào được web UI | chỉ bind loopback / firewall | chạy `--host 0.0.0.0` và thêm Inbound rule TCP cho cổng đó trong Windows Defender Firewall |
+| Tiếng Việt hiện thành `?` trong cmd/PowerShell | code page cũ (437/1258) | `set PYTHONUTF8=1` (cmd), `$env:PYTHONUTF8="1"` (PowerShell), hoặc dùng Windows Terminal |
+| `UnicodeEncodeError` khi in ra console | code page không mã hoá được ký tự | chương trình đã tự thay ký tự nên không còn crash; đặt thêm `PYTHONUTF8=1` để hiện đúng tiếng Việt |
+| Cài `torch` lâu, tốn dung lượng | wheel mặc định kéo theo CUDA | chỉ cài khi cần CNN, và cài bản CPU như hướng dẫn ở trên |
+
+Kiểm tra nhanh môi trường:
+
+```powershell
+py -3 --version
+py -3 -c "import sys, numpy; print(sys.executable, numpy.__version__)"
+```
 
 ## Ghi chú kỹ thuật
+
 
 - **Không dùng torchvision**: CNN đọc dữ liệu qua chính `mnist.data`, nên chỉ cần `torch`.
 - **Không dùng Pillow**: `mnist/imageio.py` tự cài đặt codec PNG (zlib + struct, hỗ trợ

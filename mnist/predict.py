@@ -11,7 +11,7 @@ import numpy as np
 
 from .data import DEFAULT_DATA_DIR, load_mnist, to_images
 from .evaluate import load_model
-from .imageio import prepare_digit, read_image, to_ascii, write_png
+from .imageio import preprocess_digit, read_image, to_ascii, write_png
 from .utils import configure_stdio
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -88,12 +88,14 @@ def predict_vector(model: MLP, vector: np.ndarray) -> tuple[int, float, np.ndarr
     return idx, float(probs[idx]), probs
 
 
-def predict_paths(model: MLP, paths: list[str | Path], invert: bool | None = None) -> list[dict]:
+def predict_paths(
+    model: MLP, paths: list[str | Path], invert: bool | None = None, center: bool = True
+) -> list[dict]:
     """Predict every image path given on the command line."""
     results = []
     for path in paths:
         image = read_image(path)
-        vector = prepare_digit(image, invert=invert)
+        vector = preprocess_digit(image, invert=invert, center=center)
         cls, conf, probs = predict_vector(model, vector)
         results.append({"path": str(path), "digit": cls, "confidence": conf,
                         "probs": probs.tolist(), "image": vector.reshape(28, 28)})
@@ -118,6 +120,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--sample", type=int, default=0, help="predict N random test images")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--invert", choices=("auto", "yes", "no"), default="auto")
+    p.add_argument(
+        "--no-center",
+        dest="center",
+        action="store_false",
+        help="tắt cắt+scale+căn khối tâm (chỉ dùng khi ảnh đã đúng chuẩn MNIST)",
+    )
     p.add_argument("--ascii", action="store_true", help="print each digit as ASCII art")
     p.add_argument("--save-grid", default=None, help="write a PNG sprite sheet of predictions")
     return p.parse_args(argv)
@@ -131,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
 
     images, titles = [], []
     if args.image:
-        for item in predict_paths(model, args.image, invert=invert):
+        for item in predict_paths(model, args.image, invert=invert, center=args.center):
             images.append(item["image"])
             titles.append(f"{item['digit']}v{item['confidence'] * 100:.0f}")
             print(f"{item['path']}: digit={item['digit']} confidence={item['confidence']:.3f}")
