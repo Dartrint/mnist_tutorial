@@ -1,5 +1,6 @@
 .DEFAULT_GOAL := help
-PY ?= python3
+# Pick an interpreter that exists: python3 on POSIX, python elsewhere.
+PY ?= $(shell command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
 
 .PHONY: help install install-torch data train cnn evaluate predict serve test lint demo clean
 
@@ -40,5 +41,6 @@ lint: ## Lint with ruff (pip install ruff)
 demo: ## Fast end-to-end demo on a subset of the data
 	$(PY) examples/demo.py
 
-clean: ## Remove caches and generated artefacts
-	rm -rf .pytest_cache .ruff_cache **/__pycache__ models reports/*.png
+clean: ## Remove caches and generated artefacts (keeps data/ and models/)
+	rm -rf .pytest_cache .ruff_cache reports/*.png
+	find . -name __pycache__ -type d -prune -exec rm -rf {} +

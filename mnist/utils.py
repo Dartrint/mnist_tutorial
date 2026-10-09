@@ -3,10 +3,28 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
 
 import numpy as np
+
+
+def configure_stdio(streams=None) -> None:
+    """Never crash on a code page that cannot encode our output.
+
+    Windows consoles/redirected streams default to a legacy ANSI code page
+    (cp437, cp1258, ...) which cannot represent Vietnamese text or characters
+    such as the em dash. Python then raises ``UnicodeEncodeError`` while
+    printing. Switching the streams to ``errors="replace"`` degrades the text
+    instead of killing the process; set ``PYTHONUTF8=1`` for correct output.
+    """
+    targets = streams if streams is not None else (sys.stdout, sys.stderr)
+    for stream in targets:
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError, OSError):  # non-standard stream
+            continue
 
 
 def set_seed(seed: int | None) -> np.random.Generator:

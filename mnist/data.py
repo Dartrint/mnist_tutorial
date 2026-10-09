@@ -26,6 +26,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .utils import configure_stdio
+
 #: Canonical file names and their MD5 checksums.
 FILES = {
     "train-images-idx3-ubyte.gz": "f68b3c2dcbeaaa9fbdd348bbdeb94873",
@@ -166,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     """Download (or verify) the MNIST files; usable as ``python -m mnist.data``."""
     import argparse
 
+    configure_stdio()
     parser = argparse.ArgumentParser(description="Download the MNIST IDX files.")
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     parser.add_argument("--quiet", action="store_true")

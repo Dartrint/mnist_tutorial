@@ -12,6 +12,7 @@ import numpy as np
 from .data import DEFAULT_DATA_DIR, load_mnist, to_images
 from .evaluate import load_model
 from .imageio import prepare_digit, read_image, to_ascii, write_png
+from .utils import configure_stdio
 
 if TYPE_CHECKING:  # pragma: no cover
     from .model import MLP
@@ -123,6 +124,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_stdio()
     args = parse_args(argv)
     model = load_model(args.model)
     invert = {"auto": None, "yes": True, "no": False}[args.invert]

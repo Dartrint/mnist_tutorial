@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib
 import sys
 
+from .utils import configure_stdio
+
 COMMANDS = {
     "data": ("mnist.data", "tải MNIST IDX files vào data/"),
     "train": ("mnist.train", "huấn luyện MLP bằng NumPy"),
@@ -31,6 +33,7 @@ Chạy `python -m mnist <command> --help` để xem tùy chọn của từng l�
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_stdio()
     argv = list(sys.argv[1:] if argv is None else argv)
     rendered = "\n".join(f"  {name:<9} {desc}" for name, (_, desc) in COMMANDS.items())
 

@@ -13,7 +13,7 @@ import numpy as np
 from . import nn
 from .data import DEFAULT_DATA_DIR, load_mnist
 from .model import MLP
-from .utils import AverageMeter, accuracy, save_json, set_seed
+from .utils import AverageMeter, accuracy, configure_stdio, save_json, set_seed
 
 
 def iterate_minibatches(
@@ -194,6 +194,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_stdio()
     args = parse_args(argv)
     hidden = tuple(int(h) for h in str(args.hidden).split(",") if h.strip())
     history = train(

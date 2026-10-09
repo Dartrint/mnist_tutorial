@@ -20,6 +20,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import os
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -32,7 +33,7 @@ from . import __version__
 from .data import DEFAULT_DATA_DIR, load_mnist, to_images
 from .evaluate import load_model
 from .imageio import preprocess_digit, read_png, to_png_bytes
-from .utils import classification_report, confusion_matrix
+from .utils import classification_report, configure_stdio, confusion_matrix
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
 DEFAULT_MODEL_DIR = Path("models")
@@ -194,7 +195,10 @@ class MNISTHTTPServer(ThreadingHTTPServer):
     """Threaded HTTP server carrying the shared registry and dataset cache."""
 
     daemon_threads = True
-    allow_reuse_address = True
+    # SO_REUSEADDR behaves differently on Windows (it lets a second socket bind
+    # an already-used port, silently shadowing the first server), so enable it
+    # only on POSIX where it merely avoids "address already in use" on restart.
+    allow_reuse_address = os.name != "nt"
 
     def __init__(self, address, handler, *, registry: ModelRegistry,
                  dataset: DatasetCache, static_dir: Path, quiet: bool = False) -> None:
@@ -427,6 +431,7 @@ def parse_args(argv: list[str] | None = None):
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_stdio()
     args = parse_args(argv)
     httpd = create_server(
         args.host, args.port, model_dir=args.model_dir, data_dir=args.data_dir, quiet=args.quiet

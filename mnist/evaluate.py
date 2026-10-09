@@ -10,7 +10,7 @@ import numpy as np
 
 from .data import DEFAULT_DATA_DIR, load_mnist
 from .model import MLP
-from .utils import classification_report, confusion_matrix, save_json
+from .utils import classification_report, configure_stdio, confusion_matrix, save_json
 
 
 def load_model(path: str | Path):
@@ -76,6 +76,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_stdio()
     args = parse_args(argv)
     model = load_model(args.model)
     metrics = evaluate_model(

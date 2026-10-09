@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from .data import DEFAULT_DATA_DIR, load_mnist
-from .utils import save_json, set_seed
+from .utils import configure_stdio, save_json, set_seed
 
 
 def _torch():
@@ -234,6 +234,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_stdio()
     args = parse_args(argv)
     torch, _ = _torch()
     if args.threads > 0:

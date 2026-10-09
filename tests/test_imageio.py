@@ -38,8 +38,9 @@ class TestPngRoundTrip(unittest.TestCase):
             np.testing.assert_array_equal(imageio.read_png(path), image)
 
     def test_rejects_unsupported_ndim(self) -> None:
-        with self.assertRaises(ValueError):
-            imageio.write_png("/tmp/bad.png", np.zeros((4, 4, 2), dtype=np.uint8))
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ValueError):
+                imageio.write_png(Path(tmp) / "bad.png", np.zeros((4, 4, 2), dtype=np.uint8))
 
     def test_rejects_non_png(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -79,8 +80,9 @@ class TestPgmAndDispatch(unittest.TestCase):
         self.assertAlmostEqual(int(grey[0, 0]), 76, delta=2)
 
     def test_unknown_extension(self) -> None:
-        with self.assertRaises(ValueError):
-            imageio.read_image("/tmp/whatever.bmp")
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ValueError):
+                imageio.read_image(Path(tmp) / "whatever.bmp")
 
 
 class TestResizeAndPrepare(unittest.TestCase):
