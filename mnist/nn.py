@@ -144,7 +144,7 @@ class Optimizer:
 
     def _pairs(self):
         for layer in self.layers:
-            for param, grad in zip(layer.params(), layer.grads()):
+            for param, grad in zip(layer.params(), layer.grads(), strict=True):
                 if param is not None and grad is not None:
                     yield layer, param, grad
 

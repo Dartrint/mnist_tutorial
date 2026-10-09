@@ -5,12 +5,16 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from .data import DEFAULT_DATA_DIR, load_mnist, to_images
 from .evaluate import load_model
 from .imageio import prepare_digit, read_image, to_ascii, write_png
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .model import MLP
 
 
 def render_grid(
@@ -138,12 +142,12 @@ def main(argv: list[str] | None = None) -> int:
         preds = probs.argmax(axis=1)
         correct = int((preds == y).sum())
         print(f"sampled {len(y)} test images — accuracy {correct}/{len(y)}")
-        for img, true, pred, pr in zip(X, y, preds, probs):
+        for img, true, pred, pr in zip(X, y, preds, probs, strict=True):
             print(f"  true={true}  pred={pred}  p={pr[pred]:.3f}  {'OK' if true == pred else 'MISS'}")
             if args.ascii:
                 print(to_ascii(img))
         images.extend(list(X))
-        titles.extend([f"{p}x{t}" for p, t in zip(preds, y)])
+        titles.extend([f"{p}x{t}" for p, t in zip(preds, y, strict=True)])
 
     if args.save_grid:
         if not images:

@@ -73,7 +73,7 @@ class AverageMeter:
 class Timer:
     """Minimal context manager that records elapsed wall-clock seconds."""
 
-    def __enter__(self) -> "Timer":
+    def __enter__(self) -> Timer:
         self._start = time.perf_counter()
         return self
 

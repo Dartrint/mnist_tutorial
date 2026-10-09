@@ -4,12 +4,31 @@ Dự án phân loại chữ số viết tay **MNIST** hoàn chỉnh, chạy đư
 
 | Backend | Công nghệ | Độ chính xác test | Ghi chú |
 |---|---|---|---|
-| `mnist.train` | **NumPy thuần** (MLP tự viết, không framework) | ~98% | Chỉ cần `numpy`, chạy trên mọi máy |
+| `mnist.train` | **NumPy thuần** (MLP tự viết, không framework) | **97.47%** | Chỉ cần `numpy`, chạy trên mọi máy |
 | `mnist.torch_cnn` | **PyTorch CNN** (tùy chọn) | ~99% | Cần cài `torch` (bản CPU) |
 
 Toàn bộ pipeline được viết từ đầu: tải và giải mã file IDX, lan truyền xuôi/ngược,
 các optimizer (SGD + momentum, Adam), hàm mất mát softmax cross-entropy, bộ đọc/ghi
 ảnh PNG **không cần Pillow**, cùng CLI để huấn luyện – đánh giá – dự đoán.
+
+
+## Kết quả tham chiếu (đã chạy thật, log trong `reports/`)
+
+**MLP NumPy** — `--hidden 256,128 --optimizer sgd --lr 0.1 --momentum 0.9 --batch-size 512 --epochs 8`
+(300 giây trên CPU, 235 146 tham số):
+
+| Epoch | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| train loss | 0.427 | 0.136 | 0.094 | 0.069 | 0.055 | 0.045 | 0.037 | 0.027 |
+| val acc | 0.9470 | 0.9608 | 0.9668 | 0.9706 | **0.9720** | 0.9710 | 0.9720 | 0.9720 |
+
+→ **test accuracy 0.9747** (loss 0.0810) trên 10 000 ảnh test, confusion matrix đầy đủ
+trong `reports/mlp_eval.json`. Lớp dễ nhầm nhất là `4 ↔ 9` và `3 ↔ 5`, đúng như kỳ vọng
+với một mô hình chỉ dùng lớp fully-connected.
+
+Metrics thô: `reports/mlp_history.json`, `reports/mlp_eval.json`;
+sprite sheet dự đoán: `reports/predictions.png`.
+
 
 ## Điểm nổi bật
 

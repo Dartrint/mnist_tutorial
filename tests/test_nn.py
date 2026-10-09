@@ -99,7 +99,7 @@ def _relative_gradient_error(build, seed: int = 0, eps: float = 1e-6) -> float:
 
     worst = 0.0
     for layer in layers:
-        for param, analytic in zip(layer.params(), layer.grads()):
+        for param, analytic in zip(layer.params(), layer.grads(), strict=True):
             flat, gflat = param.reshape(-1), analytic.reshape(-1)
             for i in rng.choice(flat.size, size=min(5, flat.size), replace=False):
                 old = float(flat[i])

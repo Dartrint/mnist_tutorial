@@ -99,7 +99,7 @@ class CNNClassifier:
         return path
 
     @classmethod
-    def load(cls, path: str | Path) -> "CNNClassifier":
+    def load(cls, path: str | Path) -> CNNClassifier:
         torch, _ = _torch()
         payload = torch.load(Path(path), map_location="cpu", weights_only=False)
         model = cls(n_classes=payload.get("n_classes", 10), dropout=payload.get("dropout", 0.25))

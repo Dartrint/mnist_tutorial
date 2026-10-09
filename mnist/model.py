@@ -44,7 +44,7 @@ class MLP:
         rng = set_seed(seed)
         sizes = (self.in_features, *self.hidden_sizes, self.n_classes)
         self.layers: list[nn.Layer] = []
-        for i, (fan_in, fan_out) in enumerate(zip(sizes[:-1], sizes[1:])):
+        for i, (fan_in, fan_out) in enumerate(zip(sizes[:-1], sizes[1:], strict=True)):
             is_last = i == len(sizes) - 2
             self.layers.append(nn.Linear(fan_in, fan_out, rng, init=init))
             if not is_last:
@@ -113,7 +113,7 @@ class MLP:
         return path
 
     @classmethod
-    def load(cls, path: str | Path) -> "MLP":
+    def load(cls, path: str | Path) -> MLP:
         """Reconstruct a model previously written by :meth:`save`."""
         with np.load(Path(path), allow_pickle=False) as data:
             cfg = json.loads(str(data["__config__"]))

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import copy
+import math
 import sys
 import time
 from pathlib import Path
@@ -116,6 +116,14 @@ def train(
         va_loss, va_acc = evaluate(model, X_val, y_val)
         elapsed = time.perf_counter() - t0
 
+        if not math.isfinite(tr_loss) or not math.isfinite(va_loss):
+            print(
+                f"[train] loss became non-finite at epoch {epoch} — stopping. "
+                "Try a smaller --lr or --weight-decay.",
+                file=sys.stderr,
+            )
+            break
+
         history["epoch"].append(epoch)
         history["train_loss"].append(tr_loss)
         history["train_acc"].append(tr_acc)
@@ -143,7 +151,7 @@ def train(
     # Restore the best checkpoint observed during training.
     if best_weights is not None:
         flat = [p for layer in model.trainable_layers() for p in layer.params()]
-        for target, value in zip(flat, best_weights):
+        for target, value in zip(flat, best_weights, strict=True):
             target[...] = value
 
     test_loss, test_acc = evaluate(model, X_test, y_test)
